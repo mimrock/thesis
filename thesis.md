@@ -15,3 +15,41 @@ A játékban egy kikérdező, és (az eredeti verzióban) két játékos van. Az
 1951-ben  Marvin Lee Minsky megalkotja az első neurális hálót, bár a gyakorlat
 
 1952 — Game of Checkers?
+
+
+-----pm-----
+
+
+## Naiv Bayes
+
+A Naiv Bayes egy olyan, osztályozásra szolgáló algoritmuscsoport, ami a Bayes-tétel alapján működik. Naivnak azért nevezzük, mert feltételezi, hogy a megfigyelt tulajdonságok egymástól függetlenek. Bár a valóságban ez a feltételezés gyakran nem teljesül a tapasztalatok alapján a Naiv Bayes algoritmusok az egyszerűségük ellenére változatos feladattípusokban jól teljesítenek.
+
+### Működési elv
+
+Adottak a minták tulajdonságai, és az osztály, amibe soroljuk őket. A tanítás során a Naiv Bayes algoritmusok a megadott minták alapján a Bayes-i feltételes valószínűség elvét felhasználva meghatározzák, hogy az egyes tulajdonságok milyen mértékben korrelálnak a végső osztállyal. A predikció során pedig az új mintákat azokba az osztályokba sorolják, amelyek legnagyobb eséllyel járnak együtt az ismert tulajdonságokkal.
+
+TODO: Képlet
+TODO: Legalább 1 hivatkozás
+
+------ gyak ----
+
+## Felhasznált eszközök
+
+### Python
+
+A Python egy interpretált, magas szintű, általános célú programozási nyelv, amit Guido van Rossum fejlesztett ki 1990 körül. Erősen típusos, de a típusrendszere dinamikus. Mivel szemétgyűjtővel rendelkezik, ezért a memória lefoglalása és felszabadítása nem a programozó feladata. A Python fejlesztése során nagy hangsúlyt fektettek arra, hogy egyszerű, olvasható kód ok születhessenek. A python jelmondata "batteries included", azaz "elemmel a csomagban", ami arra utal, hogy a standard függvénykönyvtára szerteágazó, és harmadik féltől letöltött, külön könyvtárak nélkül is sokféle feladatot el tud végezni. Részben ezen tulajdonságai miatt a python az utóbbi időben rendkívül népszerűvé vált, különösen az adattudósok közt.
+
+A python támogatja az objektum-orientált programozást, bár az egyszerűségre való törekvése itt is megfigyelhető. Több, más objektum orientált nyelvekben megszokott eszköz hiányzik belőle. Így például nincs lehetőség a metódusok és tulajdonságok láthatóságának jelölésére. A jelenleg aktuális, hivatalos PEP 8 formázási javaslat ezért nem is privát, hanem nem-publikus tulajdonságokról és metódusokról beszél.  Ezek nevét aláhúzással szokás kezdeni, de ez nem jelent semmilyen, fordítió vagy futtatókörnyezet által nyújtott garanciát, csak a fejlesztők számára nyújt iránymutatást. Ugyanígy hiányoznak a Python-ból az interface-ek és absztrakt osztályok.
+
+TODO: refs
+e.g.: https://www.python.org/dev/peps/pep-0020/
+
+### Scikit-learn
+
+A scikit-learn egy nyílt forráskódú python függvénykönyvtár, ami a prediktív adatelemzésre szolgáló algoritmusok széles skáláját tesz elérhetővé. A projectet 2007-ben David Cournapeau hívta életre eredetileg a Google Summer of Code program keretében. Jelenleg, csak a githubon 205 ezer másik project használja.
+
+### YAML
+
+
+
+
