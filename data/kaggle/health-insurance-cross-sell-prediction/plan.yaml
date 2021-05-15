@@ -1,0 +1,25 @@
+data_file: 'data/kaggle/health-insurance-cross-sell-prediction/train.csv'
+test_ratio: 0.8
+mapping:
+  Id:
+    use: "ignore"
+    encode: 'default'
+  Response:
+    use: "target"
+    encode: 'default'
+  Gender:
+    #"use": "ignore",
+    encode: "one_hot"
+  Age:
+    encode: 'default'
+  Region_Code:
+    use: "ignore"
+    encode: "one_hot"
+  Previously_Insured:
+    use: "ignore"
+  Vehicle_Age:
+    #"use": "ignore"
+    encode: "one_hot"
+  Vehicle_Damage:
+    use: "ignore"
+    encode: "one_hot"

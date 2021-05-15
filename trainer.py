@@ -37,38 +37,28 @@ ENCODE_ONE_HOT = "one_hot"
 
 from sklearn.preprocessing import OneHotEncoder
 
+import yaml
+
 class Plan:
-    def __init__(self):
-        self.data_path = 'data/kaggle/health-insurance-cross-sell-prediction/train.csv'
-        self.data_train = 0.8
+    def __init__(self, plan_file):
+        # path to the plan file
+        self.plan_file = plan_file
 
-        self.user_input = {
-            "id": {
-                "use": "ignore",
-                'encode': 'default',
-            },
-            "Response": {
-                "use": "target",
-                'encode': 'default',
-            },
-            "Gender": {
-                #"use": "ignore",
-                "encode": "one_hot",
-            },
-            "Vehicle_Age": {
-                #"use": "ignore",
-                "encode": "one_hot"
-            },
-            "Vehicle_Damage": {
-                #"use": "ignore",
-                "encode": "one_hot"
-            }
-        }
+        with open(plan_file, 'r') as f:
+            try:
+                plan = yaml.safe_load(f)
+            except yaml.YAMLError as exc:
+                print(exc)
+                exit(1)
 
-        # Default values for all fields.
+        print(plan)
+        self.data_path = plan['data_file']
+        self.mapping = plan['mapping']
+        self.test_ratio = plan['test_ratio']
+
         self.default = {
-            "use": "feature",
-            "encode": "default"
+            'use': 'feature',
+            'encode': 'default'
         }
 
     #@todo fix, user_input gets overwritten.
@@ -76,9 +66,9 @@ class Plan:
         plan = {}
         for field in fields:
             plan[field] = self.default.copy()
-            if field in self.user_input:
-                for key in self.user_input[field]:
-                    plan[field][key] = self.user_input[field][key]
+            if field in self.mapping:
+                for key in self.mapping[field]:
+                    plan[field][key] = self.mapping[field][key]
 
         return plan
 
@@ -125,7 +115,7 @@ class Manager:
             blah = X[i]
             X[i], y[i] = self.vectorize(self.data.iloc[i])
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.plan.test_ratio, random_state=0)
 
         logging.debug("X_Train shape: %s", X_train.shape)
 
@@ -197,7 +187,7 @@ if self.plan.fields[field]['encode'] == ENCODE_ONE_HOT:
     print("field categories:", enc.categories)'''
 
 logging.info("Starting")
-p = Plan()
+p = Plan('data/kaggle/health-insurance-cross-sell-prediction/plan.yaml')
 m = Manager(p)
 m.load_data()
 
