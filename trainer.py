@@ -192,7 +192,11 @@ m = Manager(p)
 m.load_data()
 
 
-
+# @todo argparse command line option for generating report and running a plan
+# @todo drop default as a field value. use should be: feature, ignore and target. ignore should be default.
+# @todo original and one_hot for encoding features (better encoders if there's time)
+# @todo create a requirements.txt
+# @todo result should go to stdout, logs to stderr
 
 
 '''df = pd.read_csv('data/kaggle/health-insurance-cross-sell-prediction/train.csv')
