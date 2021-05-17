@@ -50,6 +50,31 @@ A scikit-learn egy nyílt forráskódú python függvénykönyvtár, ami a predi
 
 ### YAML
 
+A YAML (YAML Ain't Markup Language) egy ember által jól olvasható adatszerializásra való fájlformátum. a JSON-nál alkalmasabb ember általi szerkesztésre, mert nem kell figyelni a zárójelekre, idézőjelekre, és vesszőkre. Részben emiatt az utóbbi évekre rendkívül népszerűvé vált, és legtöbb programnyelv már támogatja.
+
+## Használat
+
+### Előkészületek
+
+Ahhoz, hogy a szoftvert használjuk, szükségünk van a megfelelő futtatási környezet telepítésére. Ennek a legfontosabb eleme egy python értelmező. Ez minden népszerűbb operációs rendszerhez ingyenesen letölthető, például Apple OSX, Microsoft Windows és Linux környezethez is[citation]. A szoftver használatát bemutató parancsok esetében feltételezett, hogy a python értelmező a `python` paranccsal indítható el (ellentétben például a Linuxon alapértelmezett python3 paranccsal). Szükség van még egy parancsértelmezőre is. Ez minden operációs rendszerben megtalálható, de a továbbiakban az OSX és Linux rendszerekben alapértelmezett bash[citation] értelmezőt vesszük alapul. Windows rendszer esetén a Microsoft által fejlesztett ingyenes WSL, esetleg a nyílt forráskódú, Git project részét képező Git Bash telepítésével szerezhetünk be bash-t. A szoftver természetesen más parancsértelmezőkkel (például PowerShellel, zsh-val, stb.) is kompatibilis, de a parancsok szintaktikája eltérhet.
+
+A kényelmes munkához érdemes még beszerezni egy olyan szövegszerkesztőt, amivel a YAML fájlok szerkeszhetőek. Fontos, hogy a szövegszerkesztő ne tegyen extra, formázó karaktereket a szövegbe (text editor vs. word processor[citation]), és hasznos, ha képes YAML fájlok szintaktikai kiemelésére. Rengeteg ingyenes megoldás van, a teljesség igénye nélkül ilyen a Microsoft Windows platformon futó Notepad++ és VSCode, a bármely népszerű platformon futtatható Geany és Atom, és a Linuxon futtatható gedit. Én magam a JetBrains, IntelliJ Idea nevű IDE-jét használtam a YAML fájlok szerkesztéséhez.
+
+### Telepítés
+
+A program telepítése jelen esetben azon python csomagok letöltését jelenti, amiket a szoftver a működés során használ. Ezek a csomagok a szokásoknak megfelelően[citation] a `requirements.txt` nevű fájlban vannak felsorolva a kívánt verzióval együtt. Bár a csomagokat lehetséges a globális környezetbe is telepíteni, javasolt létrehozni egy úgynevezett virtuális környezetet[internal reference] a következő paranccsal:
+
+`python -m venv venv/`
+
+
+
+### Adatok
+
+Az adatokat fejléces csv formátumban kell a szoftver rendelkezésére bocsátani utf-8 karakterkódolásban. Bár nem feltétel, de érdemes ügyelni rá, hogy a fejlécben az oszlopok nevei csupa kisbetűvel legyenek elnevezve, ugyanis a szofver megkülönbözteti a kis és nagy betűket. Fontos, hogy a csv fájl olyan helyre kerüljön, ahol a program eléri azt, nem akadályozza jogosultsági, vagy egyéb probléma. A fájlnak nincs mérletkorláta, elvileg bármennyi adatot tartalmazhat, de tekintettel kell lenni arra, hogy a különböző műveletek, különösen egyes tanulóalgoritmusok illesztési szakasza nem lineáris futási idejű (például egy SVN polynomiális kernellel négyzetes időben képes csak végrehajtani az illesztést), ezért attól függően, hogy milyen műveleketeket szeretnénk végezni az adatokkal, egy nagyobb adatfájl feldolgozása irreálisan sok időt igényelhet.
+
+### Előzetes elemzés
+
+A szoftver képes egy előzetes elemzést készíteni az adatokról.
 
 
 
