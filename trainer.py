@@ -17,6 +17,11 @@ from sklearn.linear_model import SGDClassifier
 
 from sklearn.ensemble import VotingClassifier
 
+from sklearn.linear_model import LogisticRegression
+
+from sklearn.linear_model import PassiveAggressiveClassifier
+
+from sklearn.ensemble import GradientBoostingClassifier
 
 import pandas as pd
 from pandas_profiling import ProfileReport
@@ -32,14 +37,32 @@ USE_IGNORE = "ignore"
 USE_TARGET = "target"
 USE_FEATURE = "feature"
 
-PREPROCESS_DEFAULT = "default"
-PREPROCESS_ONE_HOT = "one_hot"
-PREPROCESS_NORMALIZE = "normalize"
+PREPROCESS_ORIGINAL = "original"  # keep original data
+PREPROCESS_ONE_HOT = "one_hot"  # one hot encoder
+PREPROCESS_NORMALIZE = "normalize"  # normalize data between 0 and 1
+PREPROCESS_LABEL = "label"  # transform labels to numbers
 
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import LabelEncoder
 
 import yaml
+
+class MyNormalizer:
+    def __init__(self):
+        pass
+
+    def fit(self, array):
+        self.min = array.min()
+        self.max = array.max()
+
+    def transform_single(self, val):
+        if val < self.min or val > self.max:
+            raise ValueError("Out of bound value")
+
+        z = val - self.min
+        return z / (self.max - self.min)
+
 
 class Plan:
     def __init__(self, plan_file):
@@ -59,8 +82,8 @@ class Plan:
         self.test_ratio = plan['test_ratio']
 
         self.default = {
-            'use': 'feature',
-            'preprocess': 'default'
+            'use': 'ignore',
+            'preprocess': 'original'
         }
 
     #@todo fix, user_input gets overwritten.
@@ -96,7 +119,10 @@ class Manager:
             if self.plan.fields[field]['use'] == USE_IGNORE:
                 continue'''
 
-        #@todo fix onehot encoder
+        #@todo test
+        #@todo do not vectorize line by line (this breaks Normalizer, and maybe other preprocessors, probably against best practices, and also slower)
+
+        # intialize preprocessors
         for field in list(self.data.head()):
             if self.plan[field]['use'] == USE_TARGET or self.plan[field]['use'] == USE_IGNORE:
                 size = 0
@@ -106,12 +132,19 @@ class Manager:
                 self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
                 size = self.encoders[field].categories_[0].shape[0]
             elif self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
-                self.encoders[field] = Normalizer()
+                self.encoders[field] = MyNormalizer()
                 vals = self.data[field].to_numpy()
                 self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
                 size = 1
-            elif self.plan[field]['preprocess'] == PREPROCESS_DEFAULT:
+            elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
+                self.encoders[field] = LabelEncoder()
+                vals = self.data[field].to_numpy()
+                self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
                 size = 1
+            elif self.plan[field]['preprocess'] == PREPROCESS_ORIGINAL:
+                size = 1
+            else:
+                raise RuntimeError("Invalid preprocess type: {}".format(self.plan[field]['preprocess']))
 
             self.X_cols += size
 
@@ -122,25 +155,35 @@ class Manager:
             blah = X[i]
             X[i], y[i] = self.vectorize(self.data.iloc[i])
 
+        logging.debug("first data row: %s", self.data.iloc[0])
+        logging.debug("X first row: %s", X[0])
+
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
         logging.debug("X_Train shape: %s", X_train.shape)
+        logging.debug("X first row: %s", X_train[0])
+
 
         algos = [
             {"label": "GaussianNB", "fitter": GaussianNB()},
             {"label": "ComplementNB(alpha=0.5)", "fitter": ComplementNB(alpha=0.5)},
-            {"label": "LINEAR-SVC(class_weight=balanced,dual=false)", "fitter": svm.LinearSVC(class_weight="balanced", dual=False)},
+            {"label": "LINEAR-SVC(class_weight=balanced,dual=false)", "fitter": svm.LinearSVC(dual=False, class_weight="balanced")},
+            #{"label": "NEW", "fitter": PassiveAggressiveClassifier()},
             {"label": "RandomForest(class_weight=balanced_subsample,oob_score=true)", "fitter": RandomForestClassifier(class_weight="balanced_subsample", oob_score=True)},
             {"label": "KNN(weights=distance)", "fitter": KNeighborsClassifier(weights="distance")},
+            #{"label": "SVC(linerar w/ prob)", "fitter": SklearnClassifier(SVC(kernel='linear',probability=True))}
             #{"label": "GradBoost(loss=exponential,subsample=0.75)", "fitter": GradientBoostingClassifier(loss="exponential", subsample=0.75)},
-            {"label": "SGD (class_weight=balanced,loss=modified_huber)", "fitter": SGDClassifier(class_weight="balanced", loss="modified_huber")}
+            {"label": "SGD (class_weight=balanced,loss=modified_huber)", "fitter": SGDClassifier(class_weight="balanced", loss="modified_huber")},
+            {"label": "GDBoost()", "fitter": GradientBoostingClassifier()}
         ]
             #{"label": "SVC(kernel=poly,cache_size=6000)", "fitter": svm.SVC(kernel="poly", cache_size=6000)}]
 
-        algos.append({"label": "Voting(cnb, lsvc, sgd, same params as above)", "fitter": VotingClassifier(estimators=[
+        algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
+                ('gnb', algos[0]["fitter"]),
                 ('cnb', algos[1]["fitter"]),
-                ('lsvc', algos[2]["fitter"]),
-                ('sgd', algos[5]["fitter"])
+                ('rf', algos[4]["fitter"]),
+                ('sgd', algos[5]["fitter"]),
+                ('gdm', algos[6]["fitter"])
         ], voting='soft')})
 
         for algo in algos:
@@ -163,13 +206,22 @@ class Manager:
             elif self.plan[field]['use'] == USE_TARGET:
                 # @todo encoding
                 target[0] = datarow[field]
-            elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT or self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
-                # size = self.data[field].nunique()
+            elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT:
                 vals = np.array([[datarow[field]]])
                 transformed = np.array(self.encoders[field].transform(vals))
                 v[n:n+transformed.shape[1]] = transformed
                 n += transformed.shape[1]
-            elif self.plan[field]['preprocess'] == PREPROCESS_DEFAULT:
+            elif self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
+                vals = np.array([[datarow[field]]])
+                v[n:n+1] = self.encoders[field].transform_single(vals[0])
+                n += 1
+            elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
+                vals = np.array([[datarow[field]]])
+                transformed = self.encoders[field].transform(vals.reshape(1,))
+                # transformed.reshape(transformed.shape[0], 1)
+                v[n:n+1] = transformed
+                n += 1
+            elif self.plan[field]['preprocess'] == PREPROCESS_ORIGINAL:
                 v[n] = datarow[field]
                 n += 1
 
@@ -200,13 +252,8 @@ m.load_data()
 
 
 # @todo argparse command line option for generating report and running a plan
-# @todo drop default as a field value. use should be: feature, ignore and target. ignore should be default.
-# @todo original and one_hot for encoding features (better encoders if there's time)
 # @todo create a requirements.txt
 # @todo result should go to stdout, logs to stderr
-# @todo rename encode to preprocess (introduce original as default)
-# @todo add normalizer preprocessor: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Normalizer.html#sklearn.preprocessing.Normalizer
-
 
 '''df = pd.read_csv('data/kaggle/health-insurance-cross-sell-prediction/train.csv')
 pd.options.display.max_columns = 10

@@ -5,10 +5,13 @@ mapping:
     use: "ignore"
   Response:
     use: "target"
-    preprocess: 'default'
+    preprocess: 'original'
   Gender:
-    #use: "ignore"
-    preprocess: "one_hot"
+    use: "feature"
+    preprocess: "label"
+  Driving_License:
+    use: "feature"
+    preprocess: "original"
   Age:
     use: "feature"
     preprocess: "normalize"
@@ -17,12 +20,19 @@ mapping:
     #encode: "one_hot"
   Previously_Insured:
     use: "feature"
-    #use: "ignore"
+    preprocess: "original"
   Vehicle_Age:
-    #"use": "ignore"
+    use: "feature"
     preprocess: "one_hot"
   Vehicle_Damage:
-    #use: "ignore"
-    preprocess: "one_hot"
+    use: "feature"
+    preprocess: "label"
   Policy_Sales_Channel:
+    #use: "feature"
     preprocess: "one_hot"
+  Vintage:
+    use: "feature"
+    preprocess: "normalize"
+  Annual_Premium:
+    use: "feature"
+    preprocess: "normalize"
