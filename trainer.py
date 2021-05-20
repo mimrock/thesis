@@ -32,10 +32,12 @@ USE_IGNORE = "ignore"
 USE_TARGET = "target"
 USE_FEATURE = "feature"
 
-ENCODE_DEFAULT = "default"
-ENCODE_ONE_HOT = "one_hot"
+PREPROCESS_DEFAULT = "default"
+PREPROCESS_ONE_HOT = "one_hot"
+PREPROCESS_NORMALIZE = "normalize"
 
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import Normalizer
 
 import yaml
 
@@ -58,7 +60,7 @@ class Plan:
 
         self.default = {
             'use': 'feature',
-            'encode': 'default'
+            'preprocess': 'default'
         }
 
     #@todo fix, user_input gets overwritten.
@@ -98,12 +100,17 @@ class Manager:
         for field in list(self.data.head()):
             if self.plan[field]['use'] == USE_TARGET or self.plan[field]['use'] == USE_IGNORE:
                 size = 0
-            elif self.plan[field]['encode'] == ENCODE_ONE_HOT:
+            elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT:
                 self.encoders[field] = OneHotEncoder(sparse=False)
                 vals = self.data[field].to_numpy()
                 self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
                 size = self.encoders[field].categories_[0].shape[0]
-            elif self.plan[field]['encode'] == ENCODE_DEFAULT:
+            elif self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
+                self.encoders[field] = Normalizer()
+                vals = self.data[field].to_numpy()
+                self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
+                size = 1
+            elif self.plan[field]['preprocess'] == PREPROCESS_DEFAULT:
                 size = 1
 
             self.X_cols += size
@@ -115,7 +122,7 @@ class Manager:
             blah = X[i]
             X[i], y[i] = self.vectorize(self.data.iloc[i])
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=self.plan.test_ratio, random_state=0)
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
         logging.debug("X_Train shape: %s", X_train.shape)
 
@@ -130,11 +137,11 @@ class Manager:
         ]
             #{"label": "SVC(kernel=poly,cache_size=6000)", "fitter": svm.SVC(kernel="poly", cache_size=6000)}]
 
-        algos.append({"label": "Voting(gnb, lsvc, rf, same params as above)", "fitter": VotingClassifier(estimators=[
-                ('gnb', algos[0]["fitter"]),
-                ('lsvc', algos[1]["fitter"]),
-                ('rf', algos[3]["fitter"])
-        ],voting='soft')})
+        algos.append({"label": "Voting(cnb, lsvc, sgd, same params as above)", "fitter": VotingClassifier(estimators=[
+                ('cnb', algos[1]["fitter"]),
+                ('lsvc', algos[2]["fitter"]),
+                ('sgd', algos[5]["fitter"])
+        ], voting='soft')})
 
         for algo in algos:
             logging.info("training: %s",algo["label"])
@@ -156,13 +163,13 @@ class Manager:
             elif self.plan[field]['use'] == USE_TARGET:
                 # @todo encoding
                 target[0] = datarow[field]
-            elif self.plan[field]['encode'] == ENCODE_ONE_HOT:
+            elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT or self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
                 # size = self.data[field].nunique()
                 vals = np.array([[datarow[field]]])
                 transformed = np.array(self.encoders[field].transform(vals))
                 v[n:n+transformed.shape[1]] = transformed
                 n += transformed.shape[1]
-            elif self.plan[field]['encode'] == ENCODE_DEFAULT:
+            elif self.plan[field]['preprocess'] == PREPROCESS_DEFAULT:
                 v[n] = datarow[field]
                 n += 1
 
@@ -197,6 +204,8 @@ m.load_data()
 # @todo original and one_hot for encoding features (better encoders if there's time)
 # @todo create a requirements.txt
 # @todo result should go to stdout, logs to stderr
+# @todo rename encode to preprocess (introduce original as default)
+# @todo add normalizer preprocessor: https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.Normalizer.html#sklearn.preprocessing.Normalizer
 
 
 '''df = pd.read_csv('data/kaggle/health-insurance-cross-sell-prediction/train.csv')

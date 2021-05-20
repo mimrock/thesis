@@ -3,23 +3,26 @@ test_ratio: 0.2
 mapping:
   Id:
     use: "ignore"
-    encode: 'default'
   Response:
     use: "target"
-    encode: 'default'
+    preprocess: 'default'
   Gender:
-    #"use": "ignore",
-    encode: "one_hot"
+    #use: "ignore"
+    preprocess: "one_hot"
   Age:
-    encode: 'default'
+    use: "feature"
+    preprocess: "normalize"
   Region_Code:
     use: "ignore"
-    encode: "one_hot"
+    #encode: "one_hot"
   Previously_Insured:
-    use: "ignore"
+    use: "feature"
+    #use: "ignore"
   Vehicle_Age:
     #"use": "ignore"
-    encode: "one_hot"
+    preprocess: "one_hot"
   Vehicle_Damage:
-    use: "ignore"
-    encode: "one_hot"
+    #use: "ignore"
+    preprocess: "one_hot"
+  Policy_Sales_Channel:
+    preprocess: "one_hot"
