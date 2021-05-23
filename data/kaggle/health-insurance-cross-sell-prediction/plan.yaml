@@ -14,7 +14,7 @@ mapping:
     preprocess: "original"
   Age:
     use: "feature"
-    preprocess: "normalize"
+    preprocess: "scale"
   Region_Code:
     use: "ignore"
     #encode: "one_hot"
@@ -28,11 +28,11 @@ mapping:
     use: "feature"
     preprocess: "label"
   Policy_Sales_Channel:
-    #use: "feature"
+    use: "feature"
     preprocess: "one_hot"
   Vintage:
     use: "feature"
-    preprocess: "normalize"
+    preprocess: "scale"
   Annual_Premium:
     use: "feature"
-    preprocess: "normalize"
+    preprocess: "scale"

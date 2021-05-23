@@ -11,17 +11,14 @@ from sklearn import svm
 
 from sklearn.neighbors import KNeighborsClassifier
 
-from sklearn.ensemble import GradientBoostingClassifier
-
 from sklearn.linear_model import SGDClassifier
 
 from sklearn.ensemble import VotingClassifier
 
-from sklearn.linear_model import LogisticRegression
-
-from sklearn.linear_model import PassiveAggressiveClassifier
-
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import AdaBoostClassifier
+
+from sklearn.neural_network import MLPRegressor
 
 import pandas as pd
 from pandas_profiling import ProfileReport
@@ -41,9 +38,10 @@ PREPROCESS_ORIGINAL = "original"  # keep original data
 PREPROCESS_ONE_HOT = "one_hot"  # one hot encoder
 PREPROCESS_NORMALIZE = "normalize"  # normalize data between 0 and 1
 PREPROCESS_LABEL = "label"  # transform labels to numbers
+PREPROCESS_SCALE = "scale"  # transform labels to numbers
 
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import Normalizer
+from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import LabelEncoder
 
 import yaml
@@ -121,6 +119,7 @@ class Manager:
 
         #@todo test
         #@todo do not vectorize line by line (this breaks Normalizer, and maybe other preprocessors, probably against best practices, and also slower)
+        # also makes standardization impossible.
 
         # intialize preprocessors
         for field in list(self.data.head()):
@@ -138,6 +137,11 @@ class Manager:
                 size = 1
             elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
                 self.encoders[field] = LabelEncoder()
+                vals = self.data[field].to_numpy()
+                self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
+                size = 1
+            elif self.plan[field]['preprocess'] == PREPROCESS_SCALE:
+                self.encoders[field] = RobustScaler()
                 vals = self.data[field].to_numpy()
                 self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
                 size = 1
@@ -166,24 +170,33 @@ class Manager:
 
         algos = [
             {"label": "GaussianNB", "fitter": GaussianNB()},
-            {"label": "ComplementNB(alpha=0.5)", "fitter": ComplementNB(alpha=0.5)},
+            #{"label": "ComplementNB(alpha=0.5)", "fitter": ComplementNB(alpha=0.5)},
             {"label": "LINEAR-SVC(class_weight=balanced,dual=false)", "fitter": svm.LinearSVC(dual=False, class_weight="balanced")},
             #{"label": "NEW", "fitter": PassiveAggressiveClassifier()},
-            {"label": "RandomForest(class_weight=balanced_subsample,oob_score=true)", "fitter": RandomForestClassifier(class_weight="balanced_subsample", oob_score=True)},
-            {"label": "KNN(weights=distance)", "fitter": KNeighborsClassifier(weights="distance")},
+            {"label": "RandomForest(class_weight=balanced_subsample,oob_score=true)", "fitter": RandomForestClassifier(class_weight="balanced_subsample", oob_score=False)},
+            {"label": "KNN(weights=distance)", "fitter": KNeighborsClassifier(n_neighbors=8, weights="distance", leaf_size=100)},
             #{"label": "SVC(linerar w/ prob)", "fitter": SklearnClassifier(SVC(kernel='linear',probability=True))}
             #{"label": "GradBoost(loss=exponential,subsample=0.75)", "fitter": GradientBoostingClassifier(loss="exponential", subsample=0.75)},
             {"label": "SGD (class_weight=balanced,loss=modified_huber)", "fitter": SGDClassifier(class_weight="balanced", loss="modified_huber")},
-            {"label": "GDBoost()", "fitter": GradientBoostingClassifier()}
+            {"label": "GDBoost()", "fitter": GradientBoostingClassifier(n_estimators=500)},
+            {"label": "ADABoost()", "fitter": AdaBoostClassifier()},
+            {"label": "ADABoost(lr=0.2)", "fitter": AdaBoostClassifier(learning_rate=0.2)},
+            {"label": "ADABoost(gnb)", "fitter": AdaBoostClassifier(base_estimator=GaussianNB())},
+            {"label": "ADABoost(knn)", "fitter": AdaBoostClassifier(base_estimator=KNeighborsClassifier(weights="distance"))}
+            #{"label": "MLP()", "fitter": MLPRegressor()},
+            #{"label": "MLP(solver=sgd)", "fitter": MLPRegressor(solver="sgd")},
+            #{"label": "MLP(solver=lbfgs)", "fitter": MLPRegressor(solver="lbfgs")},
+            #{"label": "svc rbf", "fitter": svm.SVC(class_weight="balanced")},
+            #{"label": "svc sigmoid", "fitter": svm.SVC(kernel="sigmoid",  class_weight="balanced")},
+            # {"label": "ADABoost(svc)", "fitter": AdaBoostClassifier(base_estimator=RandomForestClassifier(class_weight="balanced"))}
         ]
             #{"label": "SVC(kernel=poly,cache_size=6000)", "fitter": svm.SVC(kernel="poly", cache_size=6000)}]
 
         algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
                 ('gnb', algos[0]["fitter"]),
-                ('cnb', algos[1]["fitter"]),
-                ('rf', algos[4]["fitter"]),
-                ('sgd', algos[5]["fitter"]),
-                ('gdm', algos[6]["fitter"])
+                #('cnb', algos[1]["fitter"]),
+                ('rf', algos[3]["fitter"]),
+                ('sgd', algos[4]["fitter"]),
         ], voting='soft')})
 
         for algo in algos:
@@ -218,7 +231,11 @@ class Manager:
             elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
                 vals = np.array([[datarow[field]]])
                 transformed = self.encoders[field].transform(vals.reshape(1,))
-                # transformed.reshape(transformed.shape[0], 1)
+                v[n:n+1] = transformed
+                n += 1
+            elif self.plan[field]['preprocess'] == PREPROCESS_SCALE:
+                vals = np.array([[datarow[field]]])
+                transformed = self.encoders[field].transform(vals)
                 v[n:n+1] = transformed
                 n += 1
             elif self.plan[field]['preprocess'] == PREPROCESS_ORIGINAL:
