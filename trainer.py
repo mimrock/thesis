@@ -1,24 +1,8 @@
 #from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import recall_score, precision_score
 
-from sklearn.naive_bayes import ComplementNB
-
-from sklearn.ensemble import RandomForestClassifier
-
-from sklearn import svm
-
-from sklearn.neighbors import KNeighborsClassifier
-
-from sklearn.linear_model import SGDClassifier
-
 from sklearn.ensemble import VotingClassifier
-
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.ensemble import AdaBoostClassifier
-
-from sklearn.neural_network import MLPRegressor
 
 import pandas as pd
 from pandas_profiling import ProfileReport
@@ -27,6 +11,8 @@ import csv
 import numpy as np
 
 import logging
+
+from algos import get_algos
 
 logging.basicConfig(format="%(asctime)-15s %(message)s", level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -74,7 +60,6 @@ class Plan:
                 print(exc)
                 exit(1)
 
-        print(plan)
         self.data_path = plan['data_file']
         self.mapping = plan['mapping']
         self.test_ratio = plan['test_ratio']
@@ -103,19 +88,9 @@ class Manager:
         self.plan = self.user_plan.apply(list(self.data.head()))
         self.X_cols = 0
         self.encoders = {}
+        self.algos = get_algos()
 
     def load_data(self):
-        '''with open(self.plan.data_path) as f:
-            r = csv.reader(f)
-            rows = []
-            colnum = 0
-            header = next(r)
-            for row in r:
-                rows.append(row)
-
-        for field in header:
-            if self.plan.fields[field]['use'] == USE_IGNORE:
-                continue'''
 
         #@todo test
         #@todo do not vectorize line by line (this breaks Normalizer, and maybe other preprocessors, probably against best practices, and also slower)
@@ -152,61 +127,38 @@ class Manager:
 
             self.X_cols += size
 
-        X = np.zeros((len(self.data.index), self.X_cols))
-        y = np.zeros((len(self.data.index),))
+        self.X = np.zeros((len(self.data.index), self.X_cols))
+        self.y = np.zeros((len(self.data.index),))
 
         for i in range(0, len(self.data.index)):
-            blah = X[i]
-            X[i], y[i] = self.vectorize(self.data.iloc[i])
+            #blah = self.X[i]
+            self.X[i], self.y[i] = self.vectorize(self.data.iloc[i])
+
+    def train(self):
 
         logging.debug("first data row: %s", self.data.iloc[0])
         logging.debug("X first row: %s", X[0])
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
-        logging.debug("X_Train shape: %s", X_train.shape)
-        logging.debug("X first row: %s", X_train[0])
+        logging.debug("X_Train shape: %s", self.X_train.shape)
+        logging.debug("X first row: %s", self.X_train[0])
 
-
-        algos = [
-            {"label": "GaussianNB", "fitter": GaussianNB()},
-            #{"label": "ComplementNB(alpha=0.5)", "fitter": ComplementNB(alpha=0.5)},
-            {"label": "LINEAR-SVC(class_weight=balanced,dual=false)", "fitter": svm.LinearSVC(dual=False, class_weight="balanced")},
-            #{"label": "NEW", "fitter": PassiveAggressiveClassifier()},
-            {"label": "RandomForest(class_weight=balanced_subsample,oob_score=true)", "fitter": RandomForestClassifier(class_weight="balanced_subsample", oob_score=False)},
-            {"label": "KNN(weights=distance)", "fitter": KNeighborsClassifier(n_neighbors=8, weights="distance", leaf_size=100)},
-            #{"label": "SVC(linerar w/ prob)", "fitter": SklearnClassifier(SVC(kernel='linear',probability=True))}
-            #{"label": "GradBoost(loss=exponential,subsample=0.75)", "fitter": GradientBoostingClassifier(loss="exponential", subsample=0.75)},
-            {"label": "SGD (class_weight=balanced,loss=modified_huber)", "fitter": SGDClassifier(class_weight="balanced", loss="modified_huber")},
-            {"label": "GDBoost()", "fitter": GradientBoostingClassifier(n_estimators=500)},
-            {"label": "ADABoost()", "fitter": AdaBoostClassifier()},
-            {"label": "ADABoost(lr=0.2)", "fitter": AdaBoostClassifier(learning_rate=0.2)},
-            {"label": "ADABoost(gnb)", "fitter": AdaBoostClassifier(base_estimator=GaussianNB())},
-            {"label": "ADABoost(knn)", "fitter": AdaBoostClassifier(base_estimator=KNeighborsClassifier(weights="distance"))}
-            #{"label": "MLP()", "fitter": MLPRegressor()},
-            #{"label": "MLP(solver=sgd)", "fitter": MLPRegressor(solver="sgd")},
-            #{"label": "MLP(solver=lbfgs)", "fitter": MLPRegressor(solver="lbfgs")},
-            #{"label": "svc rbf", "fitter": svm.SVC(class_weight="balanced")},
-            #{"label": "svc sigmoid", "fitter": svm.SVC(kernel="sigmoid",  class_weight="balanced")},
-            # {"label": "ADABoost(svc)", "fitter": AdaBoostClassifier(base_estimator=RandomForestClassifier(class_weight="balanced"))}
-        ]
-            #{"label": "SVC(kernel=poly,cache_size=6000)", "fitter": svm.SVC(kernel="poly", cache_size=6000)}]
-
-        algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
-                ('gnb', algos[0]["fitter"]),
+        self.algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
+                ('gnb', self.algos[0]["fitter"]),
                 #('cnb', algos[1]["fitter"]),
-                ('rf', algos[3]["fitter"]),
-                ('sgd', algos[4]["fitter"]),
+                ('rf', self.algos[3]["fitter"]),
+                ('sgd', self.algos[4]["fitter"]),
         ], voting='soft')})
 
-        for algo in algos:
+    def validate(self):
+
+        for algo in self.algos:
             logging.info("training: %s",algo["label"])
-            m = algo["fitter"].fit(X_train, y_train)
+            m = algo["fitter"].fit(self.X_train, self.y_train)
             logging.info("predicting: %s", algo["label"])
-            y_pred = m.predict(X_test)
+            y_pred = m.predict(self.X_test)
             print("{}: y_pred shape: {} Recall: {} Precision: {}".format(algo["label"], y_pred.shape, recall_score(y_test, y_pred), precision_score(y_test, y_pred)))
-
-
 
     def vectorize(self, datarow):
         # print(datarow['Age'])
