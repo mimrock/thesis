@@ -1,8 +1,4 @@
-#from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score
-
-from sklearn.ensemble import VotingClassifier
 
 import pandas as pd
 from pandas_profiling import ProfileReport
@@ -30,78 +26,11 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import LabelEncoder
 
-import yaml
-
 import argparse
 
-def ttsplit(X, y, test_size=0.25):
-    # @todo shuffle
-    # @todo throw error on bad / incompatible shapes
-    split_at = X.shape[0] - int(X.shape[0] * test_size)
-    logging.info("X.shape: %s split_at: %s", X.shape, split_at)
-    return X[:split_at], X[split_at:], y[:split_at], y[split_at:]
-
-
-
-class MyNormalizer:
-    def __init__(self):
-        pass
-
-    def fit(self, array):
-        self.min = array.min()
-        self.max = array.max()
-
-    def transform_single(self, val):
-        if val < self.min or val > self.max:
-            raise ValueError("Out of bound value")
-
-        z = val - self.min
-        return z / (self.max - self.min)
-
-
-class ManualLabelEncoder:
-    def __init__(self):
-        pass
-
-    def fit(self, mapping):
-        self.mapping = mapping
-
-    def transform_single(self, val):
-        return self.mapping[val]
-
-
-class Plan:
-    def __init__(self, plan_file):
-        # path to the plan file
-        self.plan_file = plan_file
-
-        with open(plan_file, 'r') as f:
-            try:
-                plan = yaml.safe_load(f)
-            except yaml.YAMLError as exc:
-                print(exc)
-                exit(1)
-
-        self.data_path = plan['data_file']
-        self.mapping = plan['mapping']
-        self.test_ratio = plan['test_ratio']
-
-        self.default = {
-            'use': 'ignore',
-            'preprocess': 'original'
-        }
-
-    #@todo fix, user_input gets overwritten.
-    def apply(self, fields):
-        plan = {}
-        for field in fields:
-            plan[field] = self.default.copy()
-            if field in self.mapping:
-                for key in self.mapping[field]:
-                    plan[field][key] = self.mapping[field][key]
-
-        return plan
-
+from plan import Plan
+from encoders import MyNormalizer
+from result import Result, HtmlResult
 
 class Manager:
     def __init__(self, plan):
@@ -155,12 +84,8 @@ class Manager:
         self.y = np.zeros((len(self.data.index),))
 
         for i in range(0, len(self.data.index)):
-            #blah = self.X[i]
             self.X[i], self.y[i] = self.vectorize(self.data.iloc[i])
             logging.debug("X[i]: %s y[i]: %s", self.X[i], self.y[i])
-            if i > 10:
-                #exit()
-                pass
 
     def train(self):
 
@@ -170,7 +95,6 @@ class Manager:
         logging.info("X second row: %s", self.X[1])
 
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=1)
-        #self.X_train, self.X_test, self.y_train, self.y_test = ttsplit(self.X, self.y, 0.2)
 
         logging.debug("X_Train shape: %s", self.X_train.shape)
         logging.info("X train first few rows: %s", self.X_train[0:5])
@@ -190,7 +114,6 @@ class Manager:
             logging.info("predicting: %s", algo["label"])
             y_pred = m.predict(self.X_test)
             results.append(Result(self.y_test, y_pred, algo["label"]))
-            # print("{}: y_pred shape: {} Recall: {} Precision: {}".format(algo["label"], y_pred.shape, recall_score(y_test, y_pred), precision_score(y_test, y_pred)))
         return results
 
 
@@ -236,59 +159,6 @@ class Manager:
             return v, target
 
 
-class HtmlResult():
-    def __init__(self, results):
-        self.theme = "themes/result.html"
-        self.results = results
-
-    def as_html(self):
-        with open(self.theme) as f:
-            html = f.read()
-
-        rows = []
-        for result in results:
-            result.as_logs()
-            row = '''
-                <li class="table-row">
-                    <div class="col col-1">{}</div>
-                    <div class="col col-2">{:.4f}</div>
-                    <div class="col col-3">{:.4f}</div>
-                    <div class="col col-4">{:.4f}</div>
-                    <div class="col col-5">{:.4f}</div>
-                </li>
-            '''.format(result.label, result.accuracy, result.precision, result.recall, result.f1_score)
-            rows.append(row)
-
-        if len(rows) == 0:
-            raise ValueError("No results to display.")
-
-        return html.replace("{result}", "\n".join(rows))
-
-    def write_html(self, path):
-        with open(path, "w") as f:
-            f.write(self.as_html())
-
-
-class Result():
-    def __init__(self, y_true, y_pred, label):
-        self.y_pred = y_pred
-        self.y_test = y_true
-        self.recall = recall_score(y_true, y_pred)
-        self.precision = precision_score(y_true, y_pred)
-        self.f1_score = f1_score(y_true, y_pred)
-        self.accuracy = accuracy_score(y_true, y_pred)
-        self.label = label
-
-    def as_logs(self):
-        logging.info("Validation of %s model: Precision is: %s Recall is: %s f1 is: %s accuracy is: %s",
-                     self.label, self.precision, self.recall, self.f1_score, self.accuracy)
-
-    def as_html(self):
-        # @todo table css here: https://freefrontend.com/css-tables/ e.g.: https://codepen.io/faaezahmd/pen/dJeRex
-        pass
-
-
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--plan',
@@ -320,49 +190,11 @@ else:
 
 
 # @todo for sunday
-    # - html export using the css
-    # - split classes to separate files
+    # x html export using the css
+    # x split classes to separate files
     # - maybe an automatical voting one?
     # - create a separate file that generates the pandas html report (highlight highest values if there is time)
     # - LATER: Create a new repo, clean up, clear unnecessary files, only keep necessary, clear comments.
     # - LATER: If a miracle happens, add more functionality, e.g. cross-validation support
 
     # WRITE: about formula of normalization, voting comittes, titanic dataset, argparser, html export, string format
-
-
-'''
-@todo 
-- check the expected shape for X,y
-- what shapes to use for the single line vectors
-- predict
-- tests'''
-
-
-
-
-'''print("field:", field, "cardinality:", data[field].nunique())
-if self.plan.fields[field]['encode'] == ENCODE_ONE_HOT:
-    enc = OneHotEncoder()
-    enc.fit(np.array(data[field]))
-    print("field categories:", enc.categories)'''
-
-
-
-# @todo argparse command line option for generating report and running a plan
-# @todo create a requirements.txt
-# @todo result should go to stdout, logs to stderr
-
-'''df = pd.read_csv('data/kaggle/health-insurance-cross-sell-prediction/train.csv')
-pd.options.display.max_columns = 10
-print(df.describe())
-
-profile = ProfileReport(df, title="Pandas Profiling Report")
-profile.to_file("your_report.html")
-
-from sklearn.svm import SVC
-X, y = load_iris(return_X_y=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=0)
-gnb = GaussianNB()
-svc = SVC(kernel="linear")
-y_pred = svc.fit(X_train, y_train).predict(X_test)
-print("Number of mislabeled points out of a total %d points : %d" % (X_test.shape[0], (y_test != y_pred).sum()))'''
