@@ -261,15 +261,6 @@ class Result():
 
 
 
-
-
-
-
-
-
-
-
-
 parser = argparse.ArgumentParser()
 
 parser.add_argument('--plan', action='store_const',
@@ -295,6 +286,17 @@ for r in results:
     r.as_logs()
 else:
     print("unknown command", args.command.lower())
+
+
+# @todo for sunday
+    # - html export using the css
+    # - split classes to separate files
+    # - maybe an automatical voting one?
+    # - create a separate file that generates the pandas html report (highlight highest values if there is time)
+    # - LATER: Create a new repo, clean up, clear unnecessary files, only keep necessary, clear comments.
+    # - LATER: If a miracle happens, add more functionality, e.g. cross-validation support
+
+    # WRITE: about formula of normalization, voting comittes, titanic dataset, argparser, html export, string format
 
 
 '''
