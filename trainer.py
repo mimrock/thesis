@@ -1,6 +1,6 @@
 #from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import recall_score, precision_score
+from sklearn.metrics import recall_score, precision_score, f1_score, accuracy_score
 
 from sklearn.ensemble import VotingClassifier
 
@@ -32,6 +32,17 @@ from sklearn.preprocessing import LabelEncoder
 
 import yaml
 
+import argparse
+
+def ttsplit(X, y, test_size=0.25):
+    # @todo shuffle
+    # @todo throw error on bad / incompatible shapes
+    split_at = X.shape[0] - int(X.shape[0] * test_size)
+    logging.info("X.shape: %s split_at: %s", X.shape, split_at)
+    return X[:split_at], X[split_at:], y[:split_at], y[split_at:]
+
+
+
 class MyNormalizer:
     def __init__(self):
         pass
@@ -46,6 +57,17 @@ class MyNormalizer:
 
         z = val - self.min
         return z / (self.max - self.min)
+
+
+class ManualLabelEncoder:
+    def __init__(self):
+        pass
+
+    def fit(self, mapping):
+        self.mapping = mapping
+
+    def transform_single(self, val):
+        return self.mapping[val]
 
 
 class Plan:
@@ -101,6 +123,7 @@ class Manager:
             if self.plan[field]['use'] == USE_TARGET or self.plan[field]['use'] == USE_IGNORE:
                 size = 0
             elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT:
+                logging.debug("setting up one_hot preprocessor for field: %s", field)
                 self.encoders[field] = OneHotEncoder(sparse=False)
                 vals = self.data[field].to_numpy()
                 self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
@@ -113,6 +136,7 @@ class Manager:
             elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
                 self.encoders[field] = LabelEncoder()
                 vals = self.data[field].to_numpy()
+                logging.debug("setting up label preprocessor for field: %s", field)
                 self.encoders[field].fit(vals.reshape(vals.shape[0], 1))
                 size = 1
             elif self.plan[field]['preprocess'] == PREPROCESS_SCALE:
@@ -133,69 +157,144 @@ class Manager:
         for i in range(0, len(self.data.index)):
             #blah = self.X[i]
             self.X[i], self.y[i] = self.vectorize(self.data.iloc[i])
+            logging.debug("X[i]: %s y[i]: %s", self.X[i], self.y[i])
+            if i > 10:
+                #exit()
+                pass
 
     def train(self):
 
         logging.debug("first data row: %s", self.data.iloc[0])
-        logging.debug("X first row: %s", X[0])
+        logging.debug("second data row: %s", self.data.iloc[1])
+        logging.info("X first row: %s", self.X[0])
+        logging.info("X second row: %s", self.X[1])
 
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=1)
+        #self.X_train, self.X_test, self.y_train, self.y_test = ttsplit(self.X, self.y, 0.2)
 
         logging.debug("X_Train shape: %s", self.X_train.shape)
-        logging.debug("X first row: %s", self.X_train[0])
+        logging.info("X train first few rows: %s", self.X_train[0:5])
+        logging.info("y train first few rows: %s", self.y_train[0:5])
 
-        self.algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
+        logging.info("X test first few rows: %s", self.X_test[0:20])
+        logging.info("y test first few rows: %s", self.y_test[0:20])
+
+        '''self.algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
                 ('gnb', self.algos[0]["fitter"]),
                 #('cnb', algos[1]["fitter"]),
                 ('rf', self.algos[3]["fitter"]),
                 ('sgd', self.algos[4]["fitter"]),
-        ], voting='soft')})
+        ], voting='soft')})'''
 
     def validate(self):
 
+        results = []
         for algo in self.algos:
             logging.info("training: %s",algo["label"])
             m = algo["fitter"].fit(self.X_train, self.y_train)
             logging.info("predicting: %s", algo["label"])
             y_pred = m.predict(self.X_test)
-            print("{}: y_pred shape: {} Recall: {} Precision: {}".format(algo["label"], y_pred.shape, recall_score(y_test, y_pred), precision_score(y_test, y_pred)))
+            results.append(Result(self.y_test, y_pred, algo["label"]))
+            # print("{}: y_pred shape: {} Recall: {} Precision: {}".format(algo["label"], y_pred.shape, recall_score(y_test, y_pred), precision_score(y_test, y_pred)))
+        return results
+
+
 
     def vectorize(self, datarow):
-        # print(datarow['Age'])
-        v = np.zeros((self.X_cols,))
-        target = np.zeros((1,))
-        n = 0
-        for field in self.plan:
-            if self.plan[field]['use'] == USE_IGNORE:
-                continue
-            elif self.plan[field]['use'] == USE_TARGET:
-                # @todo encoding
-                target[0] = datarow[field]
-            elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT:
-                vals = np.array([[datarow[field]]])
-                transformed = np.array(self.encoders[field].transform(vals))
-                v[n:n+transformed.shape[1]] = transformed
-                n += transformed.shape[1]
-            elif self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
-                vals = np.array([[datarow[field]]])
-                v[n:n+1] = self.encoders[field].transform_single(vals[0])
-                n += 1
-            elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
-                vals = np.array([[datarow[field]]])
-                transformed = self.encoders[field].transform(vals.reshape(1,))
-                v[n:n+1] = transformed
-                n += 1
-            elif self.plan[field]['preprocess'] == PREPROCESS_SCALE:
-                vals = np.array([[datarow[field]]])
-                transformed = self.encoders[field].transform(vals)
-                v[n:n+1] = transformed
-                n += 1
-            elif self.plan[field]['preprocess'] == PREPROCESS_ORIGINAL:
-                v[n] = datarow[field]
-                n += 1
+            v = np.zeros((self.X_cols,))
+            target = np.zeros((1,))
+            n = 0
+            for field in self.plan:
+                if self.plan[field]['use'] == USE_IGNORE:
+                    continue
+                elif self.plan[field]['use'] == USE_TARGET:
+                    # @todo encoding
+                    logging.debug('target field: %s val: %s', field, datarow[field])
+                    target[0] = datarow[field]
+                elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT:
+                    vals = np.array([[datarow[field]]])
+                    transformed = np.array(self.encoders[field].transform(vals))
+                    v[n:n+transformed.shape[1]] = transformed
+                    logging.debug('1hot field: %s val: %s encoded: %s place(%s:%s)', field, datarow[field], transformed, n, n+transformed.shape[1])
+                    n += transformed.shape[1]
+                elif self.plan[field]['preprocess'] == PREPROCESS_NORMALIZE:
+                    vals = np.array([[datarow[field]]])
+                    v[n:n+1] = self.encoders[field].transform_single(vals[0])
+                    logging.debug('normalized field: %s val: %s encoded: %s place(%s)', field, datarow[field], v[n:n+1], n)
+                    n += 1
+                elif self.plan[field]['preprocess'] == PREPROCESS_LABEL:
+                    vals = np.array([[datarow[field]]])
+                    transformed = self.encoders[field].transform(vals.reshape(1,))
+                    v[n:n+1] = transformed
+                    logging.debug('label field: %s val: %s encoded: %s place(%s)', field, datarow[field], transformed, n)
+                    n += 1
+                elif self.plan[field]['preprocess'] == PREPROCESS_SCALE:
+                    vals = np.array([[datarow[field]]])
+                    transformed = self.encoders[field].transform(vals)
+                    v[n:n+1] = transformed
+                    n += 1
+                elif self.plan[field]['preprocess'] == PREPROCESS_ORIGINAL:
+                    v[n] = datarow[field]
+                    logging.debug('orig field: %s val: %s place(%s)', field, datarow[field], n)
+                    n += 1
 
-        return v, target
+            return v, target
 
+
+class Result():
+    def __init__(self, y_true, y_pred, label):
+        self.y_pred = y_pred
+        self.y_test = y_true
+        self.rc_score = recall_score(y_true, y_pred)
+        self.prec_score = precision_score(y_true, y_pred)
+        self.f1_score = f1_score(y_true, y_pred)
+        self.accuracy = accuracy_score(y_true, y_pred)
+        self.label = label
+
+    def as_logs(self):
+        logging.info("Validation of %s model: Precision is: %s Recall is: %s f1 is: %s accuracy is: %s",
+                     self.label, self.prec_score, self.rc_score, self.f1_score, self.accuracy)
+
+    def as_html(self):
+        # @todo table css here: https://codepen.io/nathancockerill/pen/OQyXWb
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--plan', action='store_const',
+                    help='Path to the yaml file containing the plan.')
+
+parser.add_argument('--html-results', action='store_const',
+                    help='Path to the html file where the results will be generated.'
+                         'If not set, the results will only be displayed as logs')
+
+args = parser.parse_args()
+
+logging.info("Loading data")
+#p = Plan('data/kaggle/health-insurance-cross-sell-prediction/plan.yaml')
+#p = Plan('data/kaggle/titanic/plan.yaml')
+p = Plan(args.plan)
+m = Manager(p)
+m.load_data()
+logging.info("Training models")
+m.train()
+logging.info("Validating models")
+results = m.validate()
+for r in results:
+    r.as_logs()
+else:
+    print("unknown command", args.command.lower())
 
 
 '''
@@ -214,10 +313,6 @@ if self.plan.fields[field]['encode'] == ENCODE_ONE_HOT:
     enc.fit(np.array(data[field]))
     print("field categories:", enc.categories)'''
 
-logging.info("Starting")
-p = Plan('data/kaggle/health-insurance-cross-sell-prediction/plan.yaml')
-m = Manager(p)
-m.load_data()
 
 
 # @todo argparse command line option for generating report and running a plan

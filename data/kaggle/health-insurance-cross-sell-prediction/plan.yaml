@@ -3,6 +3,7 @@ test_ratio: 0.2
 mapping:
   Id:
     use: "ignore"
+    preprocess: "original"
   Response:
     use: "target"
     preprocess: 'original'
@@ -14,10 +15,10 @@ mapping:
     preprocess: "original"
   Age:
     use: "feature"
-    preprocess: "scale"
+    preprocess: "normalize"
   Region_Code:
-    use: "ignore"
-    #encode: "one_hot"
+    use: "feature"
+    encode: "label"
   Previously_Insured:
     use: "feature"
     preprocess: "original"
@@ -29,10 +30,10 @@ mapping:
     preprocess: "label"
   Policy_Sales_Channel:
     use: "feature"
-    preprocess: "one_hot"
+    preprocess: "label"
   Vintage:
     use: "feature"
-    preprocess: "scale"
+    preprocess: "normalize"
   Annual_Premium:
     use: "feature"
-    preprocess: "scale"
+    preprocess: "normalize"
