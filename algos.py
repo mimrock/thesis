@@ -7,7 +7,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import AdaBoostClassifier
 
-from sklearn.neural_network import MLPRegressor
+from sklearn.ensemble import VotingClassifier
 
 import xgboost as xgb
 
@@ -74,7 +74,7 @@ def get_algos():
     ]'''
 
 def get_algos():
-    return [
+    algos = [
         {"label": "XGB()", "fitter": xgb.XGBClassifier()},
         {"label": "XGB(mlogloss)", "fitter": xgb.XGBClassifier(eval_metric='mlogloss')},
         {"label": "XGB(evmetric=auc)", "fitter": xgb.XGBClassifier(eval_metric='auc')},
@@ -97,6 +97,8 @@ def get_algos():
         {"label": "ADABoost()", "fitter": AdaBoostClassifier()},
         {"label": "ADABoost(lr=2)", "fitter": AdaBoostClassifier(learning_rate=2)},
         {"label": "ADABoost(gnb)", "fitter": AdaBoostClassifier(base_estimator=GaussianNB())},
+        {"label": "KNN()", "fitter": KNeighborsClassifier()},
+        {"label": "KNN(weights=distance)", "fitter": KNeighborsClassifier(weights="distance")},
         {"label": "xgb(code/antaresnyc/where-is-the-problem-auc-score-reached-99-7) nestim=1k", "fitter": xgb.XGBClassifier(max_depth = 8,
                                                                                                                             n_estimators = 1000,
                                                                                                                             reg_lambda = 1.2, reg_alpha = 1.2,
@@ -104,3 +106,11 @@ def get_algos():
                                                                                                                             objective = 'binary:logistic',
                                                                                                                             learning_rate = 0.15, gamma = 0.3, colsample_bytree = 0.5, eval_metric = 'auc')},
     ]
+
+    algos.append({"label": "Voting(rf, xgb, sgf)", "fitter": VotingClassifier(estimators=[
+                    ('rf', algos[11]["fitter"]),
+                    #('cnb', algos[1]["fitter"]),
+                    ('xgb', algos[6]["fitter"]),
+                    #('gnb', algos[7]["fitter"]),
+            ], voting='soft')})
+    return algos

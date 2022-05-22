@@ -179,12 +179,7 @@ class Manager:
         logging.info("X test first few rows: %s", self.X_test[0:20])
         logging.info("y test first few rows: %s", self.y_test[0:20])
 
-        '''self.algos.append({"label": "Voting(gnb, cnb, rf, sgd, gdm same params as above)", "fitter": VotingClassifier(estimators=[
-                ('gnb', self.algos[0]["fitter"]),
-                #('cnb', algos[1]["fitter"]),
-                ('rf', self.algos[3]["fitter"]),
-                ('sgd', self.algos[4]["fitter"]),
-        ], voting='soft')})'''
+
 
     def validate(self):
 
@@ -241,32 +236,65 @@ class Manager:
             return v, target
 
 
+class HtmlResult():
+    def __init__(self, results):
+        self.theme = "themes/result.html"
+        self.results = results
+
+    def as_html(self):
+        with open(self.theme) as f:
+            html = f.read()
+
+        rows = []
+        for result in results:
+            result.as_logs()
+            row = '''
+                <li class="table-row">
+                    <div class="col col-1">{}</div>
+                    <div class="col col-2">{:.4f}</div>
+                    <div class="col col-3">{:.4f}</div>
+                    <div class="col col-4">{:.4f}</div>
+                    <div class="col col-5">{:.4f}</div>
+                </li>
+            '''.format(result.label, result.accuracy, result.precision, result.recall, result.f1_score)
+            rows.append(row)
+
+        if len(rows) == 0:
+            raise ValueError("No results to display.")
+
+        return html.replace("{result}", "\n".join(rows))
+
+    def write_html(self, path):
+        with open(path, "w") as f:
+            f.write(self.as_html())
+
+
 class Result():
     def __init__(self, y_true, y_pred, label):
         self.y_pred = y_pred
         self.y_test = y_true
-        self.rc_score = recall_score(y_true, y_pred)
-        self.prec_score = precision_score(y_true, y_pred)
+        self.recall = recall_score(y_true, y_pred)
+        self.precision = precision_score(y_true, y_pred)
         self.f1_score = f1_score(y_true, y_pred)
         self.accuracy = accuracy_score(y_true, y_pred)
         self.label = label
 
     def as_logs(self):
         logging.info("Validation of %s model: Precision is: %s Recall is: %s f1 is: %s accuracy is: %s",
-                     self.label, self.prec_score, self.rc_score, self.f1_score, self.accuracy)
+                     self.label, self.precision, self.recall, self.f1_score, self.accuracy)
 
     def as_html(self):
-        # @todo table css here: https://codepen.io/nathancockerill/pen/OQyXWb
+        # @todo table css here: https://freefrontend.com/css-tables/ e.g.: https://codepen.io/faaezahmd/pen/dJeRex
         pass
 
 
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('--plan', action='store_const',
-                    help='Path to the yaml file containing the plan.')
+parser.add_argument('--plan',
+                    help='Path to the yaml file containing the plan.', required=True)
 
-parser.add_argument('--html-results', action='store_const',
+parser.add_argument('--htmlresults',
                     help='Path to the html file where the results will be generated.'
                          'If not set, the results will only be displayed as logs')
 
@@ -282,10 +310,13 @@ logging.info("Training models")
 m.train()
 logging.info("Validating models")
 results = m.validate()
-for r in results:
-    r.as_logs()
+
+if args.htmlresults is not None:
+    hr = HtmlResult(results)
+    hr.write_html(args.htmlresults)
 else:
-    print("unknown command", args.command.lower())
+    for r in results:
+        r.as_logs()
 
 
 # @todo for sunday
