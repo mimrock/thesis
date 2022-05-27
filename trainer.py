@@ -1,14 +1,17 @@
-from sklearn.model_selection import train_test_split
-
-import pandas as pd
-from pandas_profiling import ProfileReport
-import csv
-
-import numpy as np
-
+import argparse
 import logging
 
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import LabelEncoder
+
 from algos import get_algos
+from encoders import MyNormalizer
+from plan import Plan
+from result import Result, HtmlResult
 
 logging.basicConfig(format="%(asctime)-15s %(message)s", level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -20,17 +23,8 @@ PREPROCESS_ORIGINAL = "original"  # keep original data
 PREPROCESS_ONE_HOT = "one_hot"  # one hot encoder
 PREPROCESS_NORMALIZE = "normalize"  # normalize data between 0 and 1
 PREPROCESS_LABEL = "label"  # transform labels to numbers
-PREPROCESS_SCALE = "scale"  # transform labels to numbers
+PREPROCESS_SCALE = "scale"  # standardize numeric data
 
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.preprocessing import RobustScaler
-from sklearn.preprocessing import LabelEncoder
-
-import argparse
-
-from plan import Plan
-from encoders import MyNormalizer
-from result import Result, HtmlResult
 
 class Manager:
     def __init__(self, plan):
@@ -42,11 +36,6 @@ class Manager:
         self.algos = get_algos()
 
     def load_data(self):
-
-        #@todo test
-        #@todo do not vectorize line by line (this breaks Normalizer, and maybe other preprocessors, probably against best practices, and also slower)
-        # also makes standardization impossible.
-
         # intialize preprocessors
         for field in list(self.data.head()):
             if self.plan[field]['use'] == USE_TARGET or self.plan[field]['use'] == USE_IGNORE:
@@ -126,7 +115,6 @@ class Manager:
                 if self.plan[field]['use'] == USE_IGNORE:
                     continue
                 elif self.plan[field]['use'] == USE_TARGET:
-                    # @todo encoding
                     logging.debug('target field: %s val: %s', field, datarow[field])
                     target[0] = datarow[field]
                 elif self.plan[field]['preprocess'] == PREPROCESS_ONE_HOT:
@@ -171,8 +159,6 @@ parser.add_argument('--htmlresults',
 args = parser.parse_args()
 
 logging.info("Loading data")
-#p = Plan('data/kaggle/health-insurance-cross-sell-prediction/plan.yaml')
-#p = Plan('data/kaggle/titanic/plan.yaml')
 p = Plan(args.plan)
 m = Manager(p)
 m.load_data()
@@ -187,14 +173,3 @@ if args.htmlresults is not None:
 else:
     for r in results:
         r.as_logs()
-
-
-# @todo for sunday
-    # x html export using the css
-    # x split classes to separate files
-    # -- maybe an automatical voting one?
-    # x create a separate file that generates the pandas html report (highlight highest values if there is time)
-    # - LATER: Create a new repo, clean up, clear unnecessary files, only keep necessary, clear comments.
-    # -- LATER: If a miracle happens, add more functionality, e.g. cross-validation support
-
-    # WRITE: about formula of normalization, voting comittes, titanic dataset, argparser, html export, string format
