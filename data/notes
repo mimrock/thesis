@@ -1,9 +1,0 @@
-1. toolname analyse data.csv output.html
-
-2. toolname split data.csv train.csv test.csv [validate.csv]
-
-3. toolname validate SVM train.csv test.csv
-
-?. toolname validate custommodel param1=x param2=4 train.csv test.csv
-
-?. gridsearch (sklearn)?
