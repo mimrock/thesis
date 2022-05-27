@@ -47,5 +47,5 @@ class Result():
         self.label = label
 
     def as_logs(self):
-        logging.info("Validation of %s model: Precision is: %.4f Recall is: %.4f f1 is: %4.f accuracy is: %.4f",
+        logging.info("Validation of %s model: Precision is: %.4f Recall is: %.4f f1 is: %.4f accuracy is: %.4f",
                      self.label, self.precision, self.recall, self.f1_score, self.accuracy)
