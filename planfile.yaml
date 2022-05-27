@@ -1,0 +1,34 @@
+data_file: 'titanic/train.csv'
+test_ratio: 0.25
+mapping:
+  PassengerId:
+    use: "ignore"
+  Name:
+    use: "ignore"
+  Survived:
+    use: "target"
+    preprocess: "original"
+  Pclass:
+    use: "feature"
+    preprocess: "original"
+  Sex:
+    use: "feature"
+    preprocess: "label"
+  Age:
+    use: "ignore"
+    prepocess: "scale"
+  SibSp:
+    use: "feature"
+    preprocess: "normalize"
+  Parch:
+    use: "feature"
+    preprocess: "normalize"
+  Ticket:
+    use: "ignore"
+  Fare:
+    use: "feature"
+    preprocess: "normalize"
+  Cabin:
+    use: "ignore"
+  Embarked:
+    use: "ignore"

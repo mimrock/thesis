@@ -1,0 +1,174 @@
+<html>
+<!-- Az ebben a fájlban található css és html kód alapjául Faiz Ahmed munkája szolgált: https://codepen.io/faaezahmd/pen/dJeRex -->
+<body>
+    <style>
+        body {
+            font-family: 'lato', sans-serif;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin-left: auto;
+            margin-right: auto;
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        h2 {
+            font-size: 26px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+    .table li {
+            border-radius: 3px;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+    .table .table-header {
+            background-color: #95A5A6;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+    .table .table-row {
+            background-color: #ffffff;
+            box-shadow: 0px 0px 9px 0px rgba(0, 0, 0, 0.1);
+        }
+
+    .table .col-1 {
+            flex-basis: 40%;
+        }
+
+    .table .col-2 {
+            flex-basis: 10%;
+        }
+
+    .table .col-3 {
+            flex-basis: 10%;
+        }
+
+    .table .col-4 {
+            flex-basis: 10%;
+    }
+    .table .col-5 {
+        flex-basis: 10%;
+    }
+    </style>
+<div class="container">
+    <h2>Results</h2>
+    <ul class="table">
+        <li class="table-header">
+            <div class="col col-1">Model</div>
+            <div class="col col-2">Accuracy</div>
+            <div class="col col-3">Precision</div>
+            <div class="col col-4">Recall</div>
+            <div class="col col-5">F1-score</div>
+        </li>
+        
+                <li class="table-row">
+                    <div class="col col-1">GaussianNB</div>
+                    <div class="col col-2">0.7542</div>
+                    <div class="col col-3">0.7302</div>
+                    <div class="col col-4">0.6301</div>
+                    <div class="col col-5">0.6765</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">LINEAR-SVC(class_weight=balanced)</div>
+                    <div class="col col-2">0.7821</div>
+                    <div class="col col-3">0.7576</div>
+                    <div class="col col-4">0.6849</div>
+                    <div class="col col-5">0.7194</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">RandomForest()</div>
+                    <div class="col col-2">0.7989</div>
+                    <div class="col col-3">0.8246</div>
+                    <div class="col col-4">0.6438</div>
+                    <div class="col col-5">0.7231</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">RandomForest(class_weight=balanced, n_estimators=500)</div>
+                    <div class="col col-2">0.8101</div>
+                    <div class="col col-3">0.8305</div>
+                    <div class="col col-4">0.6712</div>
+                    <div class="col col-5">0.7424</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">KNN()</div>
+                    <div class="col col-2">0.8156</div>
+                    <div class="col col-3">0.8333</div>
+                    <div class="col col-4">0.6849</div>
+                    <div class="col col-5">0.7519</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">KNN(weights=distance)</div>
+                    <div class="col col-2">0.8045</div>
+                    <div class="col col-3">0.8393</div>
+                    <div class="col col-4">0.6438</div>
+                    <div class="col col-5">0.7287</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">SGD (class_weight=balanced)</div>
+                    <div class="col col-2">0.7821</div>
+                    <div class="col col-3">0.7656</div>
+                    <div class="col col-4">0.6712</div>
+                    <div class="col col-5">0.7153</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">GDBoost()</div>
+                    <div class="col col-2">0.7654</div>
+                    <div class="col col-3">0.7818</div>
+                    <div class="col col-4">0.5890</div>
+                    <div class="col col-5">0.6719</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">GDBoost(md=4, n_est=372)</div>
+                    <div class="col col-2">0.7877</div>
+                    <div class="col col-3">0.8070</div>
+                    <div class="col col-4">0.6301</div>
+                    <div class="col col-5">0.7077</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">XGB()</div>
+                    <div class="col col-2">0.7933</div>
+                    <div class="col col-3">0.8333</div>
+                    <div class="col col-4">0.6164</div>
+                    <div class="col col-5">0.7087</div>
+                </li>
+            
+
+                <li class="table-row">
+                    <div class="col col-1">XGB(spw=2)</div>
+                    <div class="col col-2">0.7821</div>
+                    <div class="col col-3">0.7361</div>
+                    <div class="col col-4">0.7260</div>
+                    <div class="col col-5">0.7310</div>
+                </li>
+            
+    </ul>
+</div>
+</body>
+</html>
