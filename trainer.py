@@ -109,7 +109,7 @@ class Manager:
 
         results = []
         for algo in self.algos:
-            logging.info("training: %s",algo["label"])
+            logging.info("training: %s", algo["label"])
             m = algo["fitter"].fit(self.X_train, self.y_train)
             logging.info("predicting: %s", algo["label"])
             y_pred = m.predict(self.X_test)
@@ -192,9 +192,9 @@ else:
 # @todo for sunday
     # x html export using the css
     # x split classes to separate files
-    # - maybe an automatical voting one?
-    # - create a separate file that generates the pandas html report (highlight highest values if there is time)
+    # -- maybe an automatical voting one?
+    # x create a separate file that generates the pandas html report (highlight highest values if there is time)
     # - LATER: Create a new repo, clean up, clear unnecessary files, only keep necessary, clear comments.
-    # - LATER: If a miracle happens, add more functionality, e.g. cross-validation support
+    # -- LATER: If a miracle happens, add more functionality, e.g. cross-validation support
 
     # WRITE: about formula of normalization, voting comittes, titanic dataset, argparser, html export, string format
